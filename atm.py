@@ -1,6 +1,6 @@
 # import any necessary libraries/scripts here
 from atm_transaction import Withdrawal, Transfer
-from additional_exceptions import InvalidAccount, InvalidATMCard
+from additional_exceptions import InvalidAccount, InvalidATMCard, MismatchPin
 
 class ATM:
     def __init__(self, loc: str, managed_by: object) -> None:
@@ -56,9 +56,18 @@ If it is invalid, raise an invalid card exception"""
                 return True
         raise InvalidATMCard
 
-
     def show_balance(self, acct_type: str) -> str:
         """Accepts account type and returns a string message detailing
 the current balance of the requested account of that customer"""
         target_account = self.get_current_card().access(acct_type)
         return f"Your {acct_type} account balance is: ${target_account.check_balance():.2f}\n"
+    
+    def change_pin(self, new_pin: str, cfm_pin: str) -> None:
+        """Check if the new pin and confirmed pin are the same, if not raise pin mismatch error,
+        updates the customer old pin with the new pin"""
+        if new_pin != cfm_pin:
+            raise MismatchPin
+        else:
+            for customer in self.bank.customers:
+                if customer["details"] is self.get_current_card().get_owned_by():
+                    customer["atm_pin"] = new_pin

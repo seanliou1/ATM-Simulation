@@ -27,6 +27,12 @@ class InvalidATMCard(Exception):
 
 class InvalidPinNumber(Exception):
     """Raise exception if pin number input does not match customer pin"""
-    def __init__(self, message = "You have entered an invalid pin.\nYour card has been returned."):
+    def __init__(self, message = "You have entered an invalid pin."):
+        self.message = message
+        super().__init__(self.message)
+
+class MismatchPin(Exception):
+    """Raise exception if new pin number and confirm pin number is not the same"""
+    def __init__(self, message = "You entered a different pin number.\nTransaction cancelled."):
         self.message = message
         super().__init__(self.message)

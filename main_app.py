@@ -1,5 +1,12 @@
 # import any necessary libraries/scripts here
-from additional_exceptions import InvalidAccount, InvalidPinNumber, InvalidATMCard, InsufficientFunds, AccountNotFound
+from additional_exceptions import (
+    InvalidAccount,
+    InvalidPinNumber,
+    InvalidATMCard,
+    InsufficientFunds,
+    AccountNotFound,
+    MismatchPin
+)
 
 def atm_app(atm) -> None:
     """ATM idle mode, this is the state when there is no card inserted.
@@ -13,37 +20,51 @@ otherwise display error message"""
         print("2. Exit")
         idle_option = input("Enter option: ").strip()
         if idle_option == "1":
-            #Insert card by entering card number
+            # Insert card by entering card number
             print()
             card_num = input("Please enter card number: ").strip()
             try:
                 atm.check_card(card_num)
-                #print(atm.get_current_card)
+                # print(atm.get_current_card)
                 print()
-                pin = input("Please enter your pin number: ").strip()
-                try:
-                    #verify the entered pin
-                    atm.check_pin(pin)
-                    print("\nTransaction in progress...\n")
-                    #go to the atm menu sys if pin is correct
-                    atm_menu_sys(atm)
-                except InvalidPinNumber as e:
-                    #invalid pin number is entered
-                    print()
-                    print(e)
-                    print()
+
+                # Allow 4 tries to enter correct pin, warn the customer on final attempt
+                # if exceed maximum attempts, eject card
+                for i in range(5):
+                    if i == 4:
+                        print("Your transaction is cancelled as you have forgotten your pin.")
+                        print("Please take your card.\n")
+                    else:
+                        if i == 3:
+                            print("This is your last attempt.")
+                            
+                        pin = input("Please enter your pin number: ").strip()
+                        try:
+                            # verify the entered pin
+                            atm.check_pin(pin)
+                            print("\nTransaction in progress...\n")
+                            # go to the atm menu sys if pin is correct
+                            atm_menu_sys(atm)
+                            break
+
+                        except InvalidPinNumber as e:
+                            # invalid pin number is entered
+                            print()
+                            print(e)
+                            print()
+                        
             except InvalidATMCard as e:
-                #invalid card number is entered
+                # invalid card number is entered
                 print()
                 print(e)
                 print()
 
         elif idle_option == "2":
-            #Exit the ATM application
+            # Exit the ATM application
             print("\nClosing application...\nApplication closed")
             break
         else:
-            #For all other input that is not recognized
+            # For all other input that is not recognized
             print("\nInvalid option, please try again.\n")
             continue
 
@@ -55,7 +76,8 @@ def atm_menu_sys(atm) -> None:
         print("1. Balance enquiry")
         print("2. Cash withdrawal")
         print("3. Fund transfer")
-        print("4. Exit")
+        print("4. Change Pin")
+        print("5. Exit")
         txn_option = input("Enter option: ").strip()
         
         if txn_option == "1":
@@ -307,6 +329,47 @@ def atm_menu_sys(atm) -> None:
                     break
 
         elif txn_option == "4":
+            # Select change pin, allow for maximum 3 attempts
+            # If exceed maximum tries, return to main menu
+            exceed_attempt = False
+            for i in range(4):
+                if i == 3:
+                    print("\nYou have exceeded the maximum number of tries")
+                    print("Returning to main menu\n")
+                    exceed_attempt = True
+                    break
+                else:
+                    new_pin = input("\nEnter new pin: ").strip()
+
+                if not new_pin.isnumeric() or len(new_pin) != 4:
+                    print("\nYou entered an invalid pin")
+                    continue
+
+                cfm_pin = input("\nConfirm new pin: ").strip()
+                if not cfm_pin.isnumeric() or len(cfm_pin) != 4:
+                    print("\nYou entered an invalid pin")
+                    continue
+                else:
+                    break
+
+            # check that both pins are the same, if the same change customer pin
+            # otherwise return error message
+            if exceed_attempt:
+                continue
+            else:
+                try:
+                    atm.change_pin(new_pin, cfm_pin)
+                except MismatchPin as e:
+                    print(f"\n{e}")
+                    print("Returning to main menu\n")
+                else:
+                    # display pin change successful but don't show pin
+                    # return card and exit from menu
+                    print("Pin change successful")
+                    print("Card Returned")
+                    break
+
+        elif txn_option == "5":
             #Exit main menu and return card to customer
             print("\nTransaction cancelled, please take your card.")
             print("Thank you for using XX bank ATM.\n")
